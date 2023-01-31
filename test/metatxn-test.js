@@ -31,12 +31,15 @@ describe("MetaTokenTransfer", function () {
 		);
 		await approveTxn.wait();
 
+		let nonce = 1;
+
 		const transferAmountOfTokens = parseEther("10");
 		const messageHash = await tokenSenderContract.getHash(
 			userAddress.address,
 			transferAmountOfTokens,
 			recipientAddress.address,
-			randomTokenContract.address
+			randomTokenContract.address,
+			nonce
 		);
 		const signature = await userAddress.signMessage(arrayify(messageHash));
 
@@ -46,16 +49,45 @@ describe("MetaTokenTransfer", function () {
 			transferAmountOfTokens,
 			recipientAddress.address,
 			randomTokenContract.address,
+			nonce,
 			signature
 		);
 		await metaTxn.wait();
 
-		const userBalance = await randomTokenContract.balanceOf(
+		let userBalance = await randomTokenContract.balanceOf(
 			userAddress.address
 		);
-		const recipientBalance = await randomTokenContract.balanceOf(recipientAddress.address);
+		let recipientBalance = await randomTokenContract.balanceOf(recipientAddress.address);
 
-		expect(userBalance.lt(tenThousandTokensWithDecimals)).to.be.true;
-		expect(recipientBalance.gt(BigNumber.from(0))).to.be.true;
+		expect(userBalance.eq(parseEther("9990"))).to.be.true;
+		expect(recipientBalance.eq(parseEther("10"))).to.be.true;
+		
+		nonce++;
+
+		const messageHash2 = await tokenSenderContract.getHash(
+			userAddress.address,
+			transferAmountOfTokens,
+			recipientAddress.address,
+			randomTokenContract.address,
+			nonce
+		);
+		const signature2 = await userAddress.signMessage(arrayify(messageHash2));
+		const metaTxn2 = await relayerSenderContractInstance.transfer(
+			userAddress.address,
+			transferAmountOfTokens,
+			recipientAddress.address,
+			randomTokenContract.address,
+			nonce,
+			signature2
+		);
+		await metaTxn2.wait();
+
+		userBalance = await randomTokenContract.balanceOf(userAddress.address);
+		recipientBalance = await randomTokenContract.balanceOf(recipientAddress.address);
+
+		expect(userBalance.eq(parseEther("9980"))).to.be.true;
+		expect(recipientBalance.eq(parseEther("20"))).to.be.true;
 	});
-})
+
+	
+});
